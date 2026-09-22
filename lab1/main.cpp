@@ -23,7 +23,7 @@ void printTwo()
 void runTask_1_2_1()
 {
     cout << "\n============================================\n";
-    cout << "ПУНКТ 1.2.1 — Без join() та detach()\n";
+    cout << "TASK 1.2.1 — Without join() or detach()\n";
     cout << "============================================\n";
 
     thread t1(printOne);
@@ -33,7 +33,7 @@ void runTask_1_2_1()
 void runTask_1_2_2()
 {
     cout << "\n============================================\n";
-    cout << "ПУНКТ 1.2.2 — Метод detach()\n";
+    cout << "TASK 1.2.2 — detach() Method\n";
     cout << "============================================\n";
 
     thread t1(printOne);
@@ -44,7 +44,7 @@ void runTask_1_2_2()
 
     this_thread::sleep_for(chrono::milliseconds(100));
 
-    cout << "Обидва потоки від'єднано." << endl;
+    cout << "Both threads have been detached." << endl;
 }
 
 list<int> list_1_2_3;
@@ -57,7 +57,7 @@ void AddToList_Unsafe(int start_val)
 
         list_1_2_3.push_back(val);
 
-        cout << "[AddToList] Додано елемент: "
+        cout << "[AddToList] Added element: "
              << val << endl;
 
         this_thread::sleep_for(chrono::milliseconds(5));
@@ -74,16 +74,16 @@ void ListContains_Unsafe(int target_val)
             target_val
         );
 
-        cout << "[ListContains] Спроба "
+        cout << "[ListContains] Attempt "
              << i + 1
-             << ": Елемент "
+             << ": Element "
              << target_val
              << " -> ";
 
         if (it != list_1_2_3.end())
-            cout << "Входить";
+            cout << "Found";
         else
-            cout << "Не входить";
+            cout << "Not found";
 
         cout << endl;
 
@@ -94,7 +94,7 @@ void ListContains_Unsafe(int target_val)
 void runTask_1_2_3()
 {
     cout << "\n============================================\n";
-    cout << "ПУНКТ 1.2.3 — Список без синхронізації\n";
+    cout << "TASK 1.2.3 — List Without Synchronization\n";
     cout << "============================================\n";
 
     list_1_2_3.clear();
@@ -108,7 +108,7 @@ void runTask_1_2_3()
     t1.join();
     t2.join();
 
-    cout << "\nРоботу пункту 1.2.3 завершено." << endl;
+    cout << "\nTask 1.2.3 completed." << endl;
 }
 
 list<int> list_1_2_4;
@@ -124,7 +124,7 @@ void AddToList_Mutex(int start_val)
 
         list_1_2_4.push_back(val);
 
-        cout << "[AddToList] Додано елемент: "
+        cout << "[AddToList] Added element: "
              << val << endl;
 
         m_1_2_4.unlock();
@@ -145,16 +145,16 @@ void ListContains_Mutex(int target_val)
             target_val
         );
 
-        cout << "[ListContains] Спроба "
+        cout << "[ListContains] Attempt "
              << i + 1
-             << ": Елемент "
+             << ": Element "
              << target_val
              << " -> ";
 
         if (it != list_1_2_4.end())
-            cout << "Входить";
+            cout << "Found";
         else
-            cout << "Не входить";
+            cout << "Not found";
 
         cout << endl;
 
@@ -167,7 +167,7 @@ void ListContains_Mutex(int target_val)
 void runTask_1_2_4()
 {
     cout << "\n============================================\n";
-    cout << "ПУНКТ 1.2.4 — Mutex: lock() / unlock()\n";
+    cout << "TASK 1.2.4 — Mutex: lock() / unlock()\n";
     cout << "============================================\n";
 
     list_1_2_4.clear();
@@ -181,7 +181,7 @@ void runTask_1_2_4()
     t1.join();
     t2.join();
 
-    cout << "\nРоботу пункту 1.2.4 завершено." << endl;
+    cout << "\nTask 1.2.4 completed." << endl;
 }
 
 list<int> list_1_2_5;
@@ -193,7 +193,7 @@ void AddToList_Once(int val)
 
     list_1_2_5.push_back(val);
 
-    cout << "[AddToList] Додано: "
+    cout << "[AddToList] Added: "
          << val << endl;
 }
 
@@ -207,14 +207,14 @@ void ListContains_Once(int target_val)
         target_val
     );
 
-    cout << "[ListContains] Перевірка "
+    cout << "[ListContains] Checking "
          << target_val
          << " -> ";
 
     if (it != list_1_2_5.end())
-        cout << "Входить";
+        cout << "Found";
     else
-        cout << "Не входить";
+        cout << "Not found";
 
     cout << endl;
 }
@@ -222,7 +222,7 @@ void ListContains_Once(int target_val)
 void runTask_1_2_5()
 {
     cout << "\n============================================\n";
-    cout << "ПУНКТ 1.2.5 — 10 потоків + lock_guard\n";
+    cout << "TASK 1.2.5 — 10 Threads + lock_guard\n";
     cout << "============================================\n";
 
     list_1_2_5.clear();
@@ -250,7 +250,7 @@ void runTask_1_2_5()
         chrono::milliseconds(300)
     );
 
-    cout << "\nРоботу пункту 1.2.5 завершено." << endl;
+    cout << "\nTask 1.2.5 completed." << endl;
 }
 
 struct someData
@@ -285,9 +285,9 @@ public:
         cout << title << " -> "
              << data.first_name << " "
              << data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << data.address
-             << ", Вік: "
+             << ", Age: "
              << data.age << endl;
     }
 
@@ -353,42 +353,42 @@ public:
         lock_guard<mutex> lockA(a.m, adopt_lock);
         lock_guard<mutex> lockB(b.m, adopt_lock);
 
-        cout << "\n[Swap] Дані до обміну:" << endl;
+        cout << "\n[Swap] Data before exchange:" << endl;
 
         cout << "A: "
              << a.data.first_name << " "
              << a.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << a.data.address
-             << ", Вік: "
+             << ", Age: "
              << a.data.age << endl;
 
         cout << "B: "
              << b.data.first_name << " "
              << b.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << b.data.address
-             << ", Вік: "
+             << ", Age: "
              << b.data.age << endl;
 
         swap(a.data, b.data);
 
-        cout << "\n[Swap] Дані після обміну:" << endl;
+        cout << "\n[Swap] Data after exchange:" << endl;
 
         cout << "A: "
              << a.data.first_name << " "
              << a.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << a.data.address
-             << ", Вік: "
+             << ", Age: "
              << a.data.age << endl;
 
         cout << "B: "
              << b.data.first_name << " "
              << b.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << b.data.address
-             << ", Вік: "
+             << ", Age: "
              << b.data.age << endl;
     }
 
@@ -402,42 +402,42 @@ public:
 
         lock(lockA, lockB);
 
-        cout << "\n[Swap] Дані до обміну:" << endl;
+        cout << "\n[Swap] Data before exchange:" << endl;
 
         cout << "A: "
              << a.data.first_name << " "
              << a.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << a.data.address
-             << ", Вік: "
+             << ", Age: "
              << a.data.age << endl;
 
         cout << "B: "
              << b.data.first_name << " "
              << b.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << b.data.address
-             << ", Вік: "
+             << ", Age: "
              << b.data.age << endl;
 
         swap(a.data, b.data);
 
-        cout << "\n[Swap] Дані після обміну:" << endl;
+        cout << "\n[Swap] Data after exchange:" << endl;
 
         cout << "A: "
              << a.data.first_name << " "
              << a.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << a.data.address
-             << ", Вік: "
+             << ", Age: "
              << a.data.age << endl;
 
         cout << "B: "
              << b.data.first_name << " "
              << b.data.last_name
-             << ", Адреса: "
+             << ", Address: "
              << b.data.address
-             << ", Вік: "
+             << ", Age: "
              << b.data.age << endl;
     }
 };
@@ -445,7 +445,7 @@ public:
 void runTask_1_2_6()
 {
     cout << "\n============================================\n";
-    cout << "ПУНКТ 1.2.6 — lock() + adopt_lock\n";
+    cout << "TASK 1.2.6 — lock() + adopt_lock\n";
     cout << "============================================\n";
 
     exchangePerson p1;
@@ -494,7 +494,7 @@ void runTask_1_2_6()
 
     t_swap.join();
 
-    cout << "\nФінальний стан об'єктів:" << endl;
+    cout << "\nFinal state of objects:" << endl;
 
     p1.print("p1");
     p2.print("p2");
@@ -503,7 +503,7 @@ void runTask_1_2_6()
 void runTask_1_2_7()
 {
     cout << "\n============================================\n";
-    cout << "ПУНКТ 1.2.7 — unique_lock + defer_lock\n";
+    cout << "TASK 1.2.7 — unique_lock + defer_lock\n";
     cout << "============================================\n";
 
     exchangePerson p1;
@@ -552,7 +552,7 @@ void runTask_1_2_7()
 
     t_swap.join();
 
-    cout << "\nФінальний стан об'єктів:" << endl;
+    cout << "\nFinal state of objects:" << endl;
 
     p1.print("p1");
     p2.print("p2");
@@ -566,19 +566,19 @@ int main()
     {
         cout << "\n\n";
         cout << "============================================\n";
-        cout << "        ЛАБОРАТОРНА РОБОТА №1\n";
-        cout << "  Застосування м'ютексів та потоків C++\n";
+        cout << "          C++ LABORATORY WORK #1\n";
+        cout << "     Using C++ Mutexes and Threads\n";
         cout << "============================================\n";
-        cout << "  1. 1.2.1  — Потоки без join / detach\n";
-        cout << "  2. 1.2.2  — Метод detach()\n";
-        cout << "  3. 1.2.3  — Список без синхронізації\n";
-        cout << "  4. 1.2.4  — Mutex lock() / unlock()\n";
-        cout << "  5. 1.2.5  — lock_guard\n";
-        cout << "  6. 1.2.6  — lock() + adopt_lock\n";
-        cout << "  7. 1.2.7  — unique_lock + defer_lock\n";
-        cout << "  0. Вихід\n";
+        cout << "  1. 1.2.1 — Threads without join / detach\n";
+        cout << "  2. 1.2.2 — detach() Method\n";
+        cout << "  3. 1.2.3 — List without synchronization\n";
+        cout << "  4. 1.2.4 — Mutex lock() / unlock()\n";
+        cout << "  5. 1.2.5 — lock_guard\n";
+        cout << "  6. 1.2.6 — lock() + adopt_lock\n";
+        cout << "  7. 1.2.7 — unique_lock + defer_lock\n";
+        cout << "  0. Exit\n";
         cout << "============================================\n";
-        cout << "Оберіть пункт: ";
+        cout << "Choose an option: ";
 
         cin >> choice;
 
@@ -613,12 +613,11 @@ int main()
                 break;
 
             case 0:
-                cout << "\nПрограму завершено.\n";
+                cout << "\nProgram terminated.\n";
                 return 0;
 
             default:
-                cout << "\nНевірний вибір. Спробуйте ще раз.\n";
+                cout << "\nInvalid choice. Please try again.\n";
         }
     }
 }
-
