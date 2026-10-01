@@ -486,6 +486,12 @@ void runTask_1_2_6()
         );
     }
 
+    if (&p1 == &p2)
+    {
+        cout << "\n[runTask_1_2_6] Error: Attempting to swap an object with itself. Operation skipped." << endl;
+        return;
+    }
+
     thread t_swap(
         &exchangePerson::Swap_AdoptLock,
         ref(p1),
@@ -542,6 +548,12 @@ void runTask_1_2_7()
                 return completed == 2;
             }
         );
+    }
+
+    if (&p1 == &p2)
+    {
+        cout << "\n[runTask_1_2_7] Error: Attempting to swap an object with itself. Operation skipped." << endl;
+        return;
     }
 
     thread t_swap(
