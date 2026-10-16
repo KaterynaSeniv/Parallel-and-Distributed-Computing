@@ -1,374 +1,606 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #include <queue>
 #include <deque>
 #include <vector>
-#include <chrono>
-#include <condition_variable>
 #include <future>
+#include <chrono>
 #include <cmath>
-#include <string>
+#include <limits>
+#include <stdexcept>
+#include <utility>
 
 using namespace std;
+using namespace chrono;
 
 bool isPrime(long long n) {
-    if (n <= 1) return false;
-    for (long long i = 2; i * i <= n; i++) {
-        if (n % i == 0) return false;
+    if (n < 2) {
+        return false;
     }
+
+    if (n == 2) {
+        return true;
+    }
+
+    if (n % 2 == 0) {
+        return false;
+    }
+
+    for (long long i = 3; i <= n / i; i += 2) {
+        if (n % i == 0) {
+            return false;
+        }
+    }
+
     return true;
 }
 
 long long getNthPrime(int n) {
-    int count = 0;
-    long long current = 1;
-    while (count < n) {
-        current++;
-        if (isPrime(current)) count++;
+    if (n <= 0) {
+        throw invalid_argument("n must be positive");
     }
-    return current;
+
+    int count = 0;
+    long long number = 1;
+
+    while (count < n) {
+        ++number;
+
+        if (isPrime(number)) {
+            ++count;
+        }
+    }
+
+    return number;
 }
 
-void task_1_2_1() {
-    cout << "\n=== 1.2.1 ===\n";
-    queue<int> data_queue;
-    bool flag = false;
+void task1() {
+    cout << "\n=== Task 1.2.1 ===\n";
+    cout << "Enter integers separated by space.\n";
+    cout << "To finish, enter q and press Enter.\n";
+
+    queue<int> dataQueue;
     mutex mtx;
-
-    auto prep = [&]() {
-        cout << "Enter integers (enter non-number to finish):\n";
-        int val;
-        while (cin >> val) {
-            lock_guard<mutex> lk(mtx);
-            data_queue.push(val);
-        }
-        cin.clear();
-        cin.ignore(10000, '\n');
-        lock_guard<mutex> lk(mtx);
-        flag = true;
-    };
-
-    auto proc = [&]() {
-        while (true) {
-            unique_lock<mutex> lk(mtx);
-            if (!data_queue.empty()) {
-                int val = data_queue.front();
-                data_queue.pop();
-                lk.unlock();
-                if (isPrime(val)) {
-                    cout << "Prime: " << val << endl;
-                }
-            } else if (flag) {
-                break;
-            } else {
-                lk.unlock();
-                this_thread::sleep_for(chrono::milliseconds(100));
-            }
-        }
-    };
-
-    thread t1(prep);
-    thread t2(proc);
-    t1.detach();
-    t2.join();
-    cout << "Done.\n";
-}
-
-void task_1_2_2() {
-    cout << "\n=== 1.2.2 ===\n";
-    mutex mtx;
-    condition_variable cv;
-    int i = 0;
-
-    auto waits = [&](int id) {
-        unique_lock<mutex> lk(mtx);
-        cout << "Thread " << id << " waiting...\n";
-        cv.wait(lk, [&] { return i == 1; });
-        cout << "Thread " << id << " done!\n";
-    };
-
-    auto awake = [&]() {
-        this_thread::sleep_for(chrono::milliseconds(100));
-        cout << "Awake: notify_all #1\n";
-        cv.notify_all();
-
-        this_thread::sleep_for(chrono::milliseconds(100));
-        {
-            lock_guard<mutex> lk(mtx);
-            i = 1;
-        }
-        cout << "Awake: i=1, notify_all #2\n";
-        cv.notify_all();
-    };
-
-    thread t1(waits, 1);
-    thread t2(waits, 2);
-    thread t3(waits, 3);
-    thread tAwake(awake);
-
-    t1.join();
-    t2.join();
-    t3.join();
-    tAwake.join();
-    cout << "Done.\n";
-}
-
-void task_1_2_3() {
-    cout << "\n=== 1.2.3 ===\n";
-    mutex mtx;
-    condition_variable cv;
-    int i = 0;
-
-    auto thread_func = [&](int id) {
-        unique_lock<mutex> lk(mtx);
-        cout << "Thread " << id << " waiting...\n";
-        cv.wait(lk, [&] { return i == 1; });
-        cout << "Message from thread " << id << endl;
-    };
-
-    auto notify_func = [&]() {
-        this_thread::sleep_for(chrono::milliseconds(100));
-        {
-            lock_guard<mutex> lk(mtx);
-            i = 1;
-        }
-        cout << "Notify: notify_one\n";
-        cv.notify_one(); 
-    };
-
-    thread t1(thread_func, 1);
-    thread t2(thread_func, 2);
-    thread t3(thread_func, 3);
-    thread tNotify(notify_func);
-
-    t1.detach();
-    t2.detach();
-    t3.detach();
-
-    tNotify.join();
-    
-    this_thread::sleep_for(chrono::milliseconds(50));
-    cout << "Done.\n";
-}
-
-void task_1_2_4() {
-    cout << "\n=== 1.2.4 ===\n";
-    queue<int> data_queue;
     bool finished = false;
-    mutex mtx;
-    condition_variable cv;
 
-    auto prep = [&]() {
-        cout << "Enter numbers (non-number to finish):\n";
-        int val;
-        while (cin >> val) {
+    thread dataPreparation([&]() {
+        int value;
+
+        while (cin >> value) {
             {
-                lock_guard<mutex> lk(mtx);
-                data_queue.push(val);
+                lock_guard<mutex> lock(mtx);
+                dataQueue.push(value);
             }
-            cv.notify_one();
         }
+
         cin.clear();
-        cin.ignore(10000, '\n');
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
         {
-            lock_guard<mutex> lk(mtx);
+            lock_guard<mutex> lock(mtx);
             finished = true;
         }
-        cv.notify_all();
-    };
+    });
 
-    auto proc = [&]() {
+    thread dataProcessing([&]() {
         while (true) {
-            unique_lock<mutex> lk(mtx);
-            cv.wait(lk, [&] { return !data_queue.empty() || finished; });
+            int value = 0;
+            bool hasValue = false;
 
-            while (!data_queue.empty()) {
-                int val = data_queue.front();
-                data_queue.pop();
-                lk.unlock();
-                if (isPrime(val)) {
-                    cout << "Prime: " << val << endl;
+            {
+                unique_lock<mutex> lock(mtx);
+
+                if (!dataQueue.empty()) {
+                    value = dataQueue.front();
+                    dataQueue.pop();
+                    hasValue = true;
+                } else if (finished) {
+                    break;
                 }
-                lk.lock();
             }
 
-            if (finished && data_queue.empty()) {
-                break;
+            if (hasValue) {
+                if (isPrime(value)) {
+                    cout << "Prime number: " << value << '\n';
+                }
+            } else {
+                this_thread::sleep_for(milliseconds(100));
             }
         }
-    };
+    });
 
-    thread t1(prep);
-    thread t2(proc);
-    t1.detach();
-    t2.join();
-    cout << "Done.\n";
+    dataPreparation.join();
+    dataProcessing.join();
+
+    cout << "Processing completed.\n";
 }
 
-void task_1_2_5() {
-    cout << "\n=== 1.2.5 ===\n";
-    int n;
-    cout << "Enter n: ";
-    cin >> n;
+void task2() {
+    cout << "\n=== Task 1.2.2 ===\n";
 
-    cout << "\nAsync mode:\n";
-    auto start = chrono::high_resolution_clock::now();
-    future<long long> fut_async = async(launch::async, getNthPrime, n);
-
-    int choice;
-    cout << "While calculating, choose:\n1 - sqrt(n)\n2 - sin(n)\n3 - log(n)\nChoice: ";
-    cin >> choice;
-
-    double result = 0;
-    if (choice == 1) {
-        result = sqrt(n);
-        cout << "sqrt(" << n << ") = " << result << endl;
-    } else if (choice == 2) {
-        result = sin(n);
-        cout << "sin(" << n << ") = " << result << endl;
-    } else if (choice == 3) {
-        result = log(n);
-        cout << "log(" << n << ") = " << result << endl;
-    }
-
-    long long res_async = fut_async.get();
-    auto end = chrono::high_resolution_clock::now();
-    cout << "async result: " << res_async << ", time: " << chrono::duration<double>(end - start).count() << "s\n";
-
-    cout << "\nDeferred mode:\n";
-    start = chrono::high_resolution_clock::now();
-    future<long long> fut_def = async(launch::deferred, getNthPrime, n);
-    long long res_def = fut_def.get();
-    end = chrono::high_resolution_clock::now();
-    cout << "deferred result: " << res_def << ", time: " << chrono::duration<double>(end - start).count() << "s\n";
-    cout << "Done.\n";
-}
-
-void task_1_2_6() {
-    cout << "\n=== 1.2.6 ===\n";
-    deque<packaged_task<long long()>> tasks_deque;
-    deque<int> numbers_deque;
     mutex mtx;
     condition_variable cv;
-    bool stop = false;
+    int i = 0;
 
-    auto worker = [&]() {
-        while (true) {
-            packaged_task<long long()> task;
+    vector<thread> waiters;
+
+    for (int j = 0; j < 3; ++j) {
+        waiters.emplace_back([&, j]() {
+            unique_lock<mutex> lock(mtx);
+
+            cout << "Thread Waits " << j + 1
+                 << " is waiting for signal.\n";
+
+            cv.wait(lock, [&]() {
+                return i == 1;
+            });
+
+            cout << "Thread Waits " << j + 1
+                 << " resumed execution.\n";
+        });
+    }
+
+    thread awake([&]() {
+        this_thread::sleep_for(milliseconds(100));
+
+        cout << "Awake: first notify_all().\n";
+        cv.notify_all();
+
+        this_thread::sleep_for(milliseconds(100));
+
+        {
+            lock_guard<mutex> lock(mtx);
+            i = 1;
+        }
+
+        cout << "Awake: condition changed, second notify_all().\n";
+        cv.notify_all();
+    });
+
+    awake.join();
+
+    for (auto& t : waiters) {
+        t.join();
+    }
+
+    cout << "All threads have finished.\n";
+}
+
+void task3() {
+    cout << "\n=== Task 1.2.3 ===\n";
+
+    mutex mtx;
+    condition_variable cv;
+    int i = 0;
+
+    vector<thread> waiters;
+
+    for (int j = 0; j < 3; ++j) {
+        waiters.emplace_back([&, j]() {
+            unique_lock<mutex> lock(mtx);
+
+            cout << "Thread Waits " << j + 1
+                 << " is waiting for signal.\n";
+
+            cv.wait(lock, [&]() {
+                return i == 1;
+            });
+
+            cout << "Thread Waits " << j + 1
+                 << " woke up.\n";
+
+            lock.unlock();
+
+            cv.notify_one();
+        });
+    }
+
+    thread notifier([&]() {
+        this_thread::sleep_for(milliseconds(100));
+
+        {
+            lock_guard<mutex> lock(mtx);
+            i = 1;
+        }
+
+        cout << "Notify: notify_one().\n";
+        cv.notify_one();
+    });
+
+    notifier.join();
+
+    for (auto& t : waiters) {
+        t.join();
+    }
+
+    cout << "All threads have finished.\n";
+}
+
+void task4() {
+    cout << "\n=== Task 1.2.4 ===\n";
+    cout << "Enter integers separated by space.\n";
+    cout << "To finish, enter q and press Enter.\n";
+
+    queue<int> dataQueue;
+    mutex mtx;
+    condition_variable cv;
+    bool finished = false;
+
+    thread dataPreparation([&]() {
+        int value;
+
+        while (cin >> value) {
             {
-                unique_lock<mutex> lk(mtx);
-                cv.wait(lk, [&] { return !tasks_deque.empty() || stop; });
-                if (tasks_deque.empty() && stop) break;
-                task = move(tasks_deque.front());
-                tasks_deque.pop_front();
-                numbers_deque.pop_front();
+                lock_guard<mutex> lock(mtx);
+                dataQueue.push(value);
             }
-            if (task.valid()) {
-                task();
+
+            cv.notify_one();
+        }
+
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        {
+            lock_guard<mutex> lock(mtx);
+            finished = true;
+        }
+
+        cv.notify_all();
+    });
+
+    thread dataProcessing([&]() {
+        while (true) {
+            int value;
+
+            {
+                unique_lock<mutex> lock(mtx);
+
+                cv.wait(lock, [&]() {
+                    return !dataQueue.empty() || finished;
+                });
+
+                if (dataQueue.empty() && finished) {
+                    break;
+                }
+
+                value = dataQueue.front();
+                dataQueue.pop();
+            }
+
+            if (isPrime(value)) {
+                cout << "Prime number: " << value << '\n';
             }
         }
+    });
+
+    dataPreparation.join();
+    dataProcessing.join();
+
+    cout << "Processing completed.\n";
+}
+
+void task5() {
+    cout << "\n=== Task 1.2.5 ===\n";
+
+    int n;
+
+    cout << "Enter the prime number index n: ";
+
+    if (!(cin >> n) || n <= 0) {
+        cout << "Error: n must be a positive integer.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return;
+    }
+
+    auto computeTimed = [n]() {
+        auto start = steady_clock::now();
+
+        long long result = getNthPrime(n);
+
+        auto finish = steady_clock::now();
+
+        double elapsed =
+            duration<double>(finish - start).count();
+
+        return make_pair(result, elapsed);
     };
 
-    thread tWorker(worker);
+    cout << "\nStarting async...\n";
 
-    cout << "Enter n (0 or 'stop' to exit):\n";
-    string input;
-    while (cin >> input) {
-        if (input == "0" || input == "stop") break;
-        try {
-            int n = stoi(input);
-            packaged_task<long long()> task([n]() { return getNthPrime(n); });
-            auto fut = task.get_future();
-            {
-                lock_guard<mutex> lk(mtx);
-                tasks_deque.push_back(move(task));
-                numbers_deque.push_back(n);
-            }
-            cv.notify_one();
-            cout << "Result: " << fut.get() << endl;
-        } catch (...) {
-            cout << "Invalid input.\n";
-        }
+    auto asyncFuture = async(launch::async, computeTimed);
+
+    double x;
+
+    cout << "Enter a positive number x for sqrt, sin, and log: ";
+
+    while (!(cin >> x) || !isfinite(x) || x <= 0) {
+        cout << "Enter a valid positive number x: ";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
+
+    cout << "sqrt(" << x << ") = " << sqrt(x) << '\n';
+    cout << "sin(" << x << ") = " << sin(x)
+         << " (x in radians)\n";
+    cout << "log(" << x << ") = " << log(x) << '\n';
+
+    auto asyncResult = asyncFuture.get();
+
+    cout << "\nlaunch::async mode:\n";
+    cout << n << "-th prime number: "
+         << asyncResult.first << '\n';
+    cout << "Computation time: "
+         << asyncResult.second << " s\n";
+
+    cout << "\nStarting launch::deferred...\n";
+
+    auto deferredFuture = async(launch::deferred, computeTimed);
+
+    auto deferredResult = deferredFuture.get();
+
+    cout << "launch::deferred mode:\n";
+    cout << n << "-th prime number: "
+         << deferredResult.first << '\n';
+    cout << "Computation time: "
+         << deferredResult.second << " s\n";
+
+    cout << "\nComparison:\n";
+    cout << "async executes the task asynchronously.\n";
+    cout << "deferred executes the task during get() or wait().\n";
+    cout << "Actual time depends on the computer and the value of n.\n";
+}
+
+void task6() {
+    cout << "\n=== Task 1.2.6 ===\n";
+    cout << "Enter n to calculate the n-th prime number.\n";
+    cout << "To finish, enter q and press Enter.\n";
+
+    deque<packaged_task<long long(int)>> tasksDeque;
+    deque<int> numbersDeque;
+
+    vector<future<long long>> results;
+
+    mutex mtx;
+    condition_variable cv;
+    bool stopWorker = false;
+
+    thread worker([&]() {
+        while (true) {
+            packaged_task<long long(int)> task;
+            int number = 0;
+
+            {
+                unique_lock<mutex> lock(mtx);
+
+                cv.wait(lock, [&]() {
+                    return stopWorker ||
+                           (!tasksDeque.empty() &&
+                            !numbersDeque.empty());
+                });
+
+                if (stopWorker &&
+                    tasksDeque.empty() &&
+                    numbersDeque.empty()) {
+                    break;
+                }
+
+                if (tasksDeque.empty() || numbersDeque.empty()) {
+                    continue;
+                }
+
+                task = move(tasksDeque.front());
+                tasksDeque.pop_front();
+
+                number = numbersDeque.front();
+                numbersDeque.pop_front();
+            }
+
+            task(number);
+        }
+    });
+
+    int n;
+
+    while (cin >> n) {
+        if (n <= 0) {
+            cout << "n must be positive. Try again.\n";
+            continue;
+        }
+
+        packaged_task<long long(int)> task(
+            [](int value) {
+                return getNthPrime(value);
+            }
+        );
+
+        future<long long> result = task.get_future();
+
+        {
+            lock_guard<mutex> lock(mtx);
+
+            tasksDeque.push_back(move(task));
+            numbersDeque.push_back(n);
+
+            results.push_back(move(result));
+        }
+
+        cv.notify_one();
+
+        cout << "Task for n = " << n
+             << " added to the queue.\n";
+    }
+
     cin.clear();
-    cin.ignore(10000, '\n');
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     {
-        lock_guard<mutex> lk(mtx);
-        stop = true;
+        lock_guard<mutex> lock(mtx);
+        stopWorker = true;
     }
+
     cv.notify_all();
-    tWorker.join();
-    cout << "Done.\n";
+    worker.join();
+
+    cout << "\nComputation results:\n";
+
+    for (size_t j = 0; j < results.size(); ++j) {
+        try {
+            cout << "Task " << j + 1
+                 << ": " << results[j].get() << '\n';
+        } catch (const exception& e) {
+            cout << "Computation error: "
+                 << e.what() << '\n';
+        }
+    }
+
+    cout << "All tasks processed.\n";
 }
 
-void task_1_2_7() {
-    cout << "\n=== 1.2.7 ===\n";
+void task7() {
+    cout << "\n=== Task 1.2.7 ===\n";
+
     int n;
-    cout << "Enter n: ";
-    cin >> n;
 
-    auto first = [](int num, promise<long long> p1, promise<bool> pBool, promise<long long> p2) {
-        p1.set_value(getNthPrime(num));
-        pBool.set_value(true);
-        p2.set_value(getNthPrime(num * 10));
-    };
+    cout << "Enter a positive number n: ";
 
-    auto second = [](int num, future<bool> fBool) {
-        fBool.get();
-        this_thread::sleep_for(chrono::seconds(2));
-        cout << "sqrt(" << num << ") = " << sqrt(num) << endl;
-    };
+    if (!(cin >> n) ||
+        n <= 0 ||
+        n > numeric_limits<int>::max() / 10) {
+        cout << "Error: n must be positive and not too large.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return;
+    }
 
-    promise<long long> prom1;
-    future<long long> fut1 = prom1.get_future();
-    promise<bool> promBool;
-    future<bool> futBool = promBool.get_future();
-    promise<long long> prom2;
-    future<long long> fut2 = prom2.get_future();
+    promise<long long> primePromise;
+    promise<long long> prime10Promise;
+    promise<bool> startSecondPromise;
 
-    thread t1(first, n, move(prom1), move(promBool), move(prom2));
-    thread t2(second, n, move(futBool));
+    future<long long> primeFuture = primePromise.get_future();
+    future<long long> prime10Future = prime10Promise.get_future();
+    future<bool> startSecondFuture = startSecondPromise.get_future();
 
-    cout << n << "-th prime: " << fut1.get() << endl;
-    cout << (n * 10) << "-th prime: " << fut2.get() << endl;
+    thread firstThread(
+        [n,
+         primePromise = move(primePromise),
+         prime10Promise = move(prime10Promise),
+         startSecondPromise = move(startSecondPromise)]() mutable {
 
-    t1.join();
-    t2.join();
-    cout << "Done.\n";
+            long long prime = getNthPrime(n);
+            primePromise.set_value(prime);
+
+            startSecondPromise.set_value(true);
+
+            long long prime10 = getNthPrime(n * 10);
+            prime10Promise.set_value(prime10);
+        }
+    );
+
+    thread secondThread(
+        [n, startSecondFuture = move(startSecondFuture)]() mutable {
+            bool start = startSecondFuture.get();
+
+            if (start) {
+                this_thread::sleep_for(seconds(2));
+
+                cout << "Second thread: sqrt(n) = "
+                     << sqrt(static_cast<double>(n)) << '\n';
+            }
+        }
+    );
+
+    cout << n << "-th prime number: "
+         << primeFuture.get() << '\n';
+
+    cout << (n * 10) << "-th prime number: "
+         << prime10Future.get() << '\n';
+
+    firstThread.join();
+    secondThread.join();
+
+    cout << "Both threads have finished.\n";
 }
+
 
 int main() {
-    cout << "Lab #2 - Multithreading\n\n";
-
     int choice;
-    do {
-        cout << "Choose task (1-7, 0 for all): ";
-        cin >> choice;
 
-        switch (choice) {
-            case 1: task_1_2_1(); break;
-            case 2: task_1_2_2(); break;
-            case 3: task_1_2_3(); break;
-            case 4: task_1_2_4(); break;
-            case 5: task_1_2_5(); break;
-            case 6: task_1_2_6(); break;
-            case 7: task_1_2_7(); break;
-            case 0:
-                task_1_2_1();
-                task_1_2_2();
-                task_1_2_3();
-                task_1_2_4();
-                task_1_2_5();
-                task_1_2_6();
-                task_1_2_7();
-                cout << "\nAll done!\n";
-                break;
-            default: cout << "Invalid.\n";
+    while (true) {
+        cout << "\n====================================\n";
+        cout << "Laboratory Work #2\n";
+        cout << "====================================\n";
+        cout << "1 - Task 1.2.1\n";
+        cout << "2 - Task 1.2.2\n";
+        cout << "3 - Task 1.2.3\n";
+        cout << "4 - Task 1.2.4\n";
+        cout << "5 - Task 1.2.5\n";
+        cout << "6 - Task 1.2.6\n";
+        cout << "7 - Task 1.2.7\n";
+        cout << "0 - Run all tasks sequentially\n";
+        cout << "-1 - Exit\n";
+        cout << "Your choice: ";
+
+        if (!(cin >> choice)) {
+            break;
         }
-        cout << "\n";
-    } while (choice != 0);
+
+        try {
+            switch (choice) {
+                case 1:
+                    task1();
+                    break;
+
+                case 2:
+                    task2();
+                    break;
+
+                case 3:
+                    task3();
+                    break;
+
+                case 4:
+                    task4();
+                    break;
+
+                case 5:
+                    task5();
+                    break;
+
+                case 6:
+                    task6();
+                    break;
+
+                case 7:
+                    task7();
+                    break;
+
+                case 0:
+                    task1();
+                    task2();
+                    task3();
+                    task4();
+                    task5();
+                    task6();
+                    task7();
+                    cout << "\nAll done!\n";
+                    break;
+
+                case -1:
+                    cout << "Program terminated.\n";
+                    return 0;
+
+                default:
+                    cout << "Unknown menu option. Try again.\n";
+                    break;
+            }
+        } catch (const exception& e) {
+            cout << "Error: " << e.what() << '\n';
+        }
+    }
 
     return 0;
 }
